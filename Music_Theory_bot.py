@@ -9,6 +9,7 @@ from urllib.parse import quote
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = os.getenv("https://telegram-music-bot-664h.onrender.com")  # Your public URL
 
 # Set up logging for debugging
 logging.basicConfig(
@@ -448,14 +449,11 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user
 
         callback_data = query.data  # Example: "quiz_1"
         selected_option = data.replace("quiz_", "")
-        print(f"Selected option: {selected_option}")  # Debugging
 
         quiz_data = context.user_data.get("quiz", {})
-        print(f"Quiz data: {quiz_data}")  # Debugging
 
         questions = quiz_data.get("questions", [])
         current_index = quiz_data.get("current_index", 0)
-        print(f"Current index: {current_index}, Questions: {questions}")  # Debugging
 
         # ✅ Handle quiz restart separately
         if selected_option == "restart":
@@ -472,10 +470,8 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user
         print(f"Option index: {option_index}")  # Debugging
 
         question_data = context.user_data.get("current_question", {})
-        print(f"Question data: {question_data}")  # Debugging
 
         options = question_data.get("options", [])
-        print(f"Options available: {options}")  # Debugging
 
         if option_index < 0 or option_index >= len(options):
             print("Invalid selection detected!")  # Debugging
@@ -483,7 +479,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user
             return
 
         answer_text = options[option_index]  # Retrieve the actual answer text
-        print(f"Answer selected: {answer_text}")  # Debugging
 
         if current_index < len(questions):
             answer_text = options[option_index].strip().lower()  # Convert to lowercase
@@ -499,7 +494,6 @@ async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user
 
             quiz_data["current_index"] += 1
             context.user_data["quiz"] = quiz_data
-            print(f"Updated quiz_data: {quiz_data}")  # Debugging
 
             await send_question(update, context)  # Move to next question
 
@@ -637,6 +631,12 @@ async def chords(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(get_text(user_lang, "choose_another_lesson"), reply_markup=lesson_menu(user_lang))
 
 
+    # Webhook setup function
+    async def set_webhook():
+        app = Application.builder().token(BOT_TOKEN).build()
+        webhook_url = f"{WEBHOOK_URL}/webhook"
+        await app.bot.set_webhook(url=webhook_url)
+
 # Main Function
 def main():
     app = Application.builder().token(BOT_TOKEN).read_timeout(20).write_timeout(20).build()
@@ -648,9 +648,13 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button))  # Handle answers
     app.add_handler(CallbackQueryHandler(handle_button, pattern=r"^quiz_\d+$"))
 
-    logger.info("Bot is running...")
-
-    app.run_polling()
+    # Remove polling and use webhook
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=8443,
+        url_path="webhook",  # Telegram will send updates here
+        webhook_url=f"{WEBHOOK_URL}/webhook"
+    )
 
 if __name__ == "__main__":
     main()
