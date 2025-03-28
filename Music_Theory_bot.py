@@ -2,6 +2,7 @@ import logging
 import os
 import asyncio
 from dotenv import load_dotenv
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from urllib.parse import quote
@@ -648,17 +649,6 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button))  # Handle answers
     app.add_handler(CallbackQueryHandler(handle_button, pattern=r"^quiz_\d+$"))
 
-    # Remove polling and use webhook
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=8443,
-        url_path="webhook",  # Telegram will send updates here
-        webhook_url=f"{WEBHOOK_URL}/webhook"
-    )
-
-import os
-from flask import Flask
-
 app = Flask(__name__)
 
 @app.route('/')
@@ -666,5 +656,14 @@ def home():
     return "Bot is running!"
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))  # Use Render's PORT, default to 10000
+    port = int(os.environ.get("PORT", 8080))  # Use Render's PORT, default to 8080
     app.run(host="0.0.0.0", port=port)
+
+    # Initialize and run Telegram bot with webhook
+    bot_app = Application.builder().token("YOUR_BOT_TOKEN").build()
+    bot_app.run_webhook(
+        listen="0.0.0.0",
+        port=port,  # Use the same port as Flask
+        url_path="webhook",
+        webhook_url=f"{WEBHOOK_URL}/webhook"
+    )
