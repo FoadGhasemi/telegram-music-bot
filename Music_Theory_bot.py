@@ -2,7 +2,7 @@ import logging
 import os
 import asyncio
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from urllib.parse import quote
@@ -655,9 +655,16 @@ app = Flask(__name__)
 def home():
     return "Bot is running!"
 
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = request.get_json()  # Get the incoming Telegram update
+    print(update)  # Log the update for debugging
+    return "Webhook received!", 200
+
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))  # Use Render's PORT, default to 8080
+    port = int(os.environ.get("PORT", 8080))  # Use Render's PORT
     app.run(host="0.0.0.0", port=port)
+
 
     # Initialize and run Telegram bot with webhook
     bot_app = Application.builder().token("YOUR_BOT_TOKEN").build()
