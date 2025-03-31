@@ -2,10 +2,8 @@ import logging
 import os
 import asyncio
 from dotenv import load_dotenv
-from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
-from urllib.parse import quote
 
 # Load environment variables
 load_dotenv()
@@ -655,7 +653,6 @@ async def main():
         webhook_url=webhook_url
     )
 
-# **Run the bot**
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())  # Run async main function
+# **Gunicorn Entry Point**
+def run():
+    asyncio.run(main())  # Gunicorn runs this function
