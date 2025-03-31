@@ -10,7 +10,7 @@ from urllib.parse import quote
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("https://telegram-music-bot-664h.onrender.com")  # Your public URL
+WEBHOOK_URL = "https://telegram-music-bot-664h.onrender.com"  # Your public URL
 
 # Set up logging for debugging
 logging.basicConfig(
@@ -632,14 +632,8 @@ async def chords(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(get_text(user_lang, "choose_another_lesson"), reply_markup=lesson_menu(user_lang))
 
 
-    # Webhook setup function
-    async def set_webhook():
-        app = Application.builder().token(BOT_TOKEN).build()
-        webhook_url = f"{WEBHOOK_URL}/webhook"
-        await app.bot.set_webhook(url=webhook_url)
-
-# Main Function
-def main():
+# **Main function to start the bot**
+async def main():
     app = Application.builder().token(BOT_TOKEN).read_timeout(20).write_timeout(20).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -649,28 +643,19 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button))  # Handle answers
     app.add_handler(CallbackQueryHandler(handle_button, pattern=r"^quiz_\d+$"))
 
-app = Flask(__name__)
+    # **Set Webhook**
+    webhook_url = f"{WEBHOOK_URL}/webhook"
+    await app.bot.set_webhook(url=webhook_url)
 
-@app.route('/')
-def home():
-    return "Bot is running!"
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()  # Get the incoming Telegram update
-    print(update)  # Log the update for debugging
-    return "Webhook received!", 200
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))  # Use Render's PORT
-    app.run(host="0.0.0.0", port=port)
-
-
-    # Initialize and run Telegram bot with webhook
-    bot_app = Application.builder().token("YOUR_BOT_TOKEN").build()
-    bot_app.run_webhook(
+    # **Run webhook server**
+    app.run_webhook(
         listen="0.0.0.0",
-        port=port,  # Use the same port as Flask
+        port=int(os.getenv("PORT", 8080)),  # Use Render's PORT
         url_path="webhook",
-        webhook_url=f"{WEBHOOK_URL}/webhook"
+        webhook_url=webhook_url
     )
+
+# **Run the bot**
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())  # Run async main function
