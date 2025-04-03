@@ -653,6 +653,6 @@ async def main():
         webhook_url=webhook_url
     )
 
-# **Gunicorn Entry Point**
-def run():
-    asyncio.run(main())  # Gunicorn runs this function
+# **Run the bot**
+if __name__ == "__main__":
+    asyncio.run(main())  # Runs the bot correctly
