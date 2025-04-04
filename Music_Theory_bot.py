@@ -653,7 +653,9 @@ async def main():
         webhook_url=webhook_url
     )
 
+# asyncio.run(main())
 # **Run the bot properly**
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())  # Correct way to start the async bot
+    loop.run_until_complete(main())  # an event loop that doesn’t close unexpectedly
+                                     # Runs `main()` inside the existing loop
