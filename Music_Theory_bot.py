@@ -631,31 +631,26 @@ async def chords(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # **Main function to start the bot**
-async def main():
+def main():
     app = Application.builder().token(BOT_TOKEN).read_timeout(20).write_timeout(20).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("quiz", send_quiz))
     app.add_handler(CallbackQueryHandler(handle_button))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button))  # Handle answers
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button))
     app.add_handler(CallbackQueryHandler(handle_button, pattern=r"^quiz_\d+$"))
 
-    # **Set Webhook**
     webhook_url = f"{WEBHOOK_URL}/webhook"
-    await app.bot.set_webhook(url=webhook_url)
+    # Set webhook using bot's method (blocking or not, your choice)
+    app.bot.set_webhook(url=webhook_url)
 
-    # **Run webhook server**
     app.run_webhook(
         listen="0.0.0.0",
-        port=int(os.getenv("PORT", 8080)),  # Use Render's PORT
+        port=int(os.environ.get("PORT", 8080)),
         url_path="webhook",
         webhook_url=webhook_url
     )
 
-# asyncio.run(main())
-# **Run the bot properly**
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())  # an event loop that doesn’t close unexpectedly
-                                     # Runs `main()` inside the existing loop
+    main()
