@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = "https://telegram-music-bot-664h.onrender.com"  # Your public URL
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 # Set up logging for debugging
 logging.basicConfig(
