@@ -4,6 +4,7 @@ import asyncio
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+import random
 
 # Load environment variables
 load_dotenv()
@@ -281,6 +282,17 @@ quiz_questions ={
     }]
     }
 
+amazon_adz = {
+    "guitar": [
+        ("🎸 Buy a Beginner Guitar", "https://www.amazon.ca/DONNER-DST-80-Electric-Guitar-Beginner/dp/B0DGX3931N/ref=sr_1_15?dib=eyJ2IjoiMSJ9.BWv838_pZEJ8XWxZEqfLXM-40IFxC0aZgKxs4jMW8upGDu2r4LekmIyKVEqhHcH_yWYXqy5uvBhY3puObtnah-lIWpQ9ph1W8_YXhk9ni7RYhZmSQXUSVMifnB2ibGpKK_yR3_eDFZAB95hnJQYgx_mytvKmGZ7Dx720A6ohLZYvh4N4eQgrxyCEtbgU1MSfAp0G-HQL05dA1NTBQ8RfEtPz0TeJd4G2jKLUb5NwadZVQBjeY02vt4AqmyHJHcOo2GY292RJ4x5TK0UTchSBCh1Yms7SgoO67S0KWVgGYKA.z346u3gX8GIiM6djky_bseCQ6ZhECSv0oMK_qVHP_n4&dib_tag=se&keywords=Guitars%2Bfor%2BBeginners&qid=1744207296&sr=8-15&th=1"),
+        ("🎶 Guitar Strings Pack", "https://www.amazon.ca/Ernie-Ball-Regular-Electric-Strings/dp/B09WZ8PVZH/ref=sr_1_4?crid=2OSVY4T6053EP&dib=eyJ2IjoiMSJ9.vMGZlxLRqkGt-OQDB8V2Pmbqzam3s92SA9uaE_BeKgYHXYalWc4SNeeNAJrqlSqPVMpSChRd9p4jC1TbMT4FsBeWeTS5tGemUy_tR76687DeBxE_ZJoIR_numJxFrn54u4DPrUBRiicBeaeXFutMrmKADyZw6c_TSPVxNYVZ2jecGqcFLf7giMtOb4gp_ZpCn84G1CMrzHQWzsaylAw26CtZCuktmp6p2m7HzoVLoBcTG3GvoPI9HYiEOeOelgy9O8L8KS7AMmWeu2oegPO7RrBvuZzo_wR0nmRymHTXHeU.FKXB9sDdtmL1OsLWULmfvWSrzHjZW6cY013vTbW5HNg&dib_tag=se&keywords=guitar%2Bstrings%2Bpack&qid=1744207590&s=musical-instruments&sprefix=guitar%2Bstrings%2Bpac%2Cmi%2C309&sr=1-4&th=1")
+    ],
+    "books": [
+        ("📘 Music Theory For Dummies", "https://www.amazon.ca/Guitar-Fretboard-Memorize-Exercises-Included/dp/1719064873/ref=sr_1_2_sspa?dib=eyJ2IjoiMSJ9.wd9U0cX3cvv4KcRCIEkOQjJXBXDDI0eeOB_k5eCPWPBnSm4LisWnS78fzvHJSv1L4qmeYD-jNV6Y0cRExZlwRAAPtAEUA67q8Hex5LyG0AXmmddKrQKRTANXmy9-aVxjSJs0Hl3qLs6k0eh2C9B-Qhwrf_IAN0ltZabd6zpRHPRj4CmR_Hzv-VpcLNddD_ixzmK84aQogx78ChnFC6m6jBBTfCFhnWiZsPt_E63JOLSpI7kPNII03oEd_p9uabmvB-OLHkXQPAlTl-bAMDcJ8YXyfp2Qj4LE-gBYuTbpMU0.fXx5atBKU3wowglMSMcpWnptQHQYGj3uxX3fD-ycTHY&dib_tag=se&keywords=guitar+book&qid=1744207823&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1"),
+        ("guitar fret board", "https://www.amazon.ca/Guitar-Adult-Beginners-Step-Step/dp/B0DT89T5B3/ref=sr_1_5_sspa?crid=34FM4DRF3A5TW&dib=eyJ2IjoiMSJ9.OrciLYa5RlM59RUC7adPX51Ths9hHfMoNQVR8zwU2rskcg_iTqpzd-ngAb52XLOM_rYfbw8CjCawdr2jU73Y4SOfpm9l-JiAVV-9iew_iNC0mPqI0VWEL4ng3ZzhOHKV_ToWPZYAp2WMNHAPxz4tfPLy2oPp4s1zWNn300_atoEuYKJ0rbd9nRw63BfmqKVQvHH80qAIv71tDjEe-W9QKlskXoKw6WoFWVJobedXDPJyKVBBY9cZN06mJZM_G5MTZaES_OrhrqBxILo_ojg57WPXzlgFOZkVMDtJHpY1_n8.oQj_ktZaKk1wLQ9xGBiqvm33OQbAhWwSI9rzu9Y05VU&dib_tag=se&keywords=guitar+book+best+seller&qid=1744207985&sprefix=guitar+book+best+selle%2Caps%2C522&sr=8-5-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1")
+    ]
+}
+
 async def send_media(chat, file_path, caption="", is_quiz=False):
     """Send OGG media files, handling quiz and lesson media separately."""
     if not os.path.exists(file_path):
@@ -341,6 +353,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         get_text(user_lang, "help_commands")
     )
+
+#  Amazon ad sender
+def get_anazon_ad_keybord (category: "books"):
+    buttons = []
+    if category in amazon_adz:
+        ads = random.sample(amazon_adz[category], k=min(2, len(amazon_adz[category])))
+        for text, url in ads:
+            buttons.append([InlineKeyboardButton(text, url=url)])
+    return InlineKeyboardMarkup(buttons)
 
 # Lesson Menu
 def lesson_menu(user_lang):
@@ -418,6 +439,12 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "audio" in question_data:
         audio_path = question_data["audio"]
         await send_media(update.effective_chat, audio_path, is_quiz=True)
+
+    # Sending the ads
+    await update.message.reply_text(
+        "Recommended for you:",
+        reply_markup = get_anazon_ad_keybord("guitar")
+    )
 
 # Handle Button Clicks
 async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user_lang="en"):
@@ -654,3 +681,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+#https://www.amazon.ca/Otamatone-Touch-Sensitive-Electronic-Musical-Instrument/dp/B00MRJ8GXK/ref=sr_1_22?crid=27SDGO4UILMCD&dib=eyJ2IjoiMSJ9.FtV5dPOYidmFp9wbNNNjqG3jk0ohn8UEzFxoxtgISo9WpN2MXnO8ZAJnw7TzLeJLrE7uvgYyDeY9AnUVrP7yUEw7JIFJwIneeMvJiRjWjCA2R7YUlzlHv4vuL08hKpz480C0GPaXhPFu5AGB2c2bZFMqxxwjOkRKu93Uu5rc5VrezuWIhlalI-HmxY0k0PddsBfrAGQI-v6VokAH1fMLjThJleVs37jBoK2ztnpqWb4RUasMfqk6sxP1_da2VfPSLQn9vm-k7ngkMJ6wcLarzYseUp11uOU3WVZo_VhQZV8.oxoEKI4ng2C0-bN8i5yz5HEo9A9ftZI36tTXG2Vy_qI&dib_tag=se&keywords=music&qid=1744116393&sprefix=mus%2Caps%2C333&sr=8-22&th=1
+#https://www.amazon.ca/Donner-DMS-1-Portable-Tabletop-Ukulele/dp/B0772MTRSH/ref=pd_rhf_se_s_pd_sbs_rvi_d_sccl_2_5/133-1693958-3926168?pd_rd_w=7oPN5&content-id=amzn1.sym.7640e302-a2f4-4636-8c01-032f9fc35b54&pf_rd_p=7640e302-a2f4-4636-8c01-032f9fc35b54&pf_rd_r=Y1EXZSV606WWW920H549&pd_rd_wg=8RhMK&pd_rd_r=559fc661-261e-4ea9-955c-e813c1f330a5&pd_rd_i=B0772MTRSH&th=1
+#https://www.amazon.ca/MOREYES-Composition-Manuscript-Notebook-notebook/dp/B07QCXR1SM/ref=sr_1_17?crid=27SDGO4UILMCD&dib=eyJ2IjoiMSJ9.FtV5dPOYidmFp9wbNNNjqG3jk0ohn8UEzFxoxtgISo9WpN2MXnO8ZAJnw7TzLeJLrE7uvgYyDeY9AnUVrP7yUEw7JIFJwIneeMvJiRjWjCA2R7YUlzlHv4vuL08hKpz480C0GPaXhPFu5AGB2c2bZFMqxxwjOkRKu93Uu5rc5VrezuWIhlalI-HmxY0k0PddsBfrAGQI-v6VokAH1fMLjThJleVs37jBoK2ztnpqWb4RUasMfqk6sxP1_da2VfPSLQn9vm-k7ngkMJ6wcLarzYseUp11uOU3WVZo_VhQZV8.oxoEKI4ng2C0-bN8i5yz5HEo9A9ftZI36tTXG2Vy_qI&dib_tag=se&keywords=music&qid=1744116393&sprefix=mus%2Caps%2C333&sr=8-17
+#https://www.amazon.ca/GLEAM-Sheet-Music-Stand-Carrying/dp/B07D7QN1Z1/ref=sr_1_24?crid=27SDGO4UILMCD&dib=eyJ2IjoiMSJ9.FtV5dPOYidmFp9wbNNNjqG3jk0ohn8UEzFxoxtgISo9WpN2MXnO8ZAJnw7TzLeJLrE7uvgYyDeY9AnUVrP7yUEw7JIFJwIneeMvJiRjWjCA2R7YUlzlHv4vuL08hKpz480C0GPaXhPFu5AGB2c2bZFMqxxwjOkRKu93Uu5rc5VrezuWIhlalI-HmxY0k0PddsBfrAGQI-v6VokAH1fMLjThJleVs37jBoK2ztnpqWb4RUasMfqk6sxP1_da2VfPSLQn9vm-k7ngkMJ6wcLarzYseUp11uOU3WVZo_VhQZV8.oxoEKI4ng2C0-bN8i5yz5HEo9A9ftZI36tTXG2Vy_qI&dib_tag=se&keywords=music&qid=1744116393&sprefix=mus%2Caps%2C333&sr=8-24
+#musictheorybo-20
