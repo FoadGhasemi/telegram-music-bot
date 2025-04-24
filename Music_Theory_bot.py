@@ -1,6 +1,7 @@
 import logging
 import os
 import asyncio
+import update
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -566,14 +567,15 @@ async def handle_email (update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 PATH_PREMIUM = "premium_users.json"
 
-def load_paid_users(user_id):
+def load_paid_users(user_id): #ypeError: load_paid_users() missing 1 required positional argument: 'user_id'
     try:
         with open("paid_users.json", "r") as f:
             users = json.load(f)
     except:
         return str(user_id) in users
 
-premium_users = load_paid_users()
+user_id = str(update.effective_user.id)
+premium_users = load_paid_users(user_id)
 
 def save_paid_user(user_id):
     users = load_paid_users()
