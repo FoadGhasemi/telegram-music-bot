@@ -1,9 +1,6 @@
 import logging
 import os
 import asyncio
-from itertools import chain
-
-import update
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
