@@ -1,10 +1,16 @@
 import logging
 import os
 import asyncio
+from itertools import chain
+
+import update
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 import random
+import json
+from pathlib import Path
 
 # Load environment variables
 load_dotenv()
@@ -39,6 +45,7 @@ lessons = {
             ],
             "choose_lesson": "Choose another lesson:"
         },
+
         "rhythm": {
             "text": "Rhythm concepts:\n"
                     "- Time signatures:\n"
@@ -53,6 +60,79 @@ lessons = {
             ],
             "choose_lesson": "Choose another lesson:"
             }},
+
+    "Fa": {
+        "basics": {
+            "text": ":مبانی تئوری موسیقی:\n"
+                    "- 1 نت گرد = 2 نت سفید  = 4  سیاه = 8  یک لا چنگ = 16 دو لا چنگ \n"
+                    "- نام‌های نت ها و نماد های آن ها: C (Do)، D (Re)، E (Mi)، F (Fa)، G (Sol)، A (La)، B (sd).\n"
+                    "\nبه طول نت گوش دهید و به تصویر توجه کنید:",
+            "files": [
+                ("audio/Simple_rhythm_example.ogg", "simple_rhythm_example"),
+                ("audio/Compound_rhythm_example.ogg", "compound_rhythm_example"),
+            ],
+            "choose_lesson" : "یک درس دیگر انتخاب کنید"
+        },
+
+        "rhythm": {
+            "text": "مفاهیم ریتم:\n"
+                    "- ;کسر های میزان:\n"
+                    " * ریتم های ساده: هر ضرب به دو قسمت مساوی تقسیم می شود (به عنوان مثال، 2/4، 3/4، 4/4).\n"
+                    " * ریتم های مرکب: هر ضرب به سه قسمت مساوی تقسیم می شود (به عنوان مثال، 6/8، 9/8، 12/8).\n"
+                    "- سرعت، تمپو: ضرب در دقیقه (BPM).\n"
+                    "- سنکوپ: جابجایی تاکید ها.\n",
+            "files": [
+                ("audio/Simple_rhythm_example.ogg", "simple_rhythm_example"),
+                ("audio/Compound_rhythm_example.ogg", "compound_rhythm_example"),
+            ],
+            "choose_lesson": ":یک درس دیگر را انتخاب کنید"
+
+        },
+
+        "interval": {
+            "text": "- **Intervals**:\n"
+        "Here are the basic intervals from smallest to an octave:\n\n"
+        "🎵 **Minor Second (m2)** – 1 semitone (C → C# / Db)\n"
+        "🎵 **Major Second (M2)** – 2 semitones (C → D)\n"
+        "🎵 **Minor Third (m3)** – 3 semitones (C → Eb)\n"
+        "🎵 **Major Third (M3)** – 4 semitones (C → E)\n"
+        "🎵 **Perfect Fourth (P4)** – 5 semitones (C → F)\n"
+        "🎵 **Tritone (A4/d5)** – 6 semitones (C → F# / Gb)\n"
+        "🎵 **Perfect Fifth (P5)** – 7 semitones (C → G)\n"
+        "🎵 **Minor Sixth (m6)** – 8 semitones (C → Ab)\n"
+        "🎵 **Major Sixth (M6)** – 9 semitones (C → A)\n"
+        "🎵 **Minor Seventh (m7)** – 10 semitones (C → Bb)\n"
+        "🎵 **Major Seventh (M7)** – 11 semitones (C → B)\n"
+        "🎵 **Perfect Octave (P8)** – 12 semitones (C → C)\n"
+        "⬇️ Listen to the intervals below:",
+
+            "files":[
+                ("audio/Intervals.ogg", "Intervals Example")
+            ],
+            "choose_lesson": ":یک درس دیگر را انتخاب کنید"
+        },
+
+        "scales":{
+            "text": "major(ماژور): C (دو)-> D (ره)-> E (می)-> F (فا)-> G (سل)-> A (لا)-> B (سی)-> C (دو)\n "
+                "minor(مینور) : A -> B -> C -> D -> E -> F -> G -> A \n",
+            "files": [
+                ("audio/scales.ogg", "scales"),
+            ],
+            "choose_lesson" : "یک درس دیگر انتخاب کنید"
+        },
+
+        "chords":{"text": "\n آکورد های سه صدایی (Triad Chords):"
+                          "ماژور: فاصله نت اول و دوم دوپرده (سوم بزرگ)، فاصله نت اول و سوم سه و نیم پرده (پنجم درست)\n"
+                          " مثال: C, E, G آکورد دو ماژور\n"
+                          "مینور: فاصله نت اول و دوم یک و نیم (سوم کوچک)، فاصله نت اول و سوم سه و نیم پرده (پنجم درست)\n"
+                          " مثال: C, Eb, G آکورد دو مینور"
+            ,
+            "files": [
+                ("audio/chords.ogg", "chords"),
+            ],
+            "choose_lesson" : "یک درس دیگر انتخاب کنید"
+
+        }},
 
     "es": {
         "basics": {
@@ -135,6 +215,27 @@ LANGUAGES = {
         "notes_image": "Visual representation of notes.",
         "choose_another_lesson": "Choose another lesson:"
     },
+    "Fa": {
+        "start": "سلام! به ربات تئوری موسیقی خوش آمدید. موضوعی را برای شروع یادگیری انتخاب کنید:",
+        "help": "دستورات موجود:\n/start - خوش آمدید و منوی درس\n/help - نمایش این پیام راهنما\n/کویز - شرکت در آزمون تئوری موسیقی",
+        "quiz_question": "سوال شما اینجاست:",
+        "quiz_correct": "✅ درست است! شما 1 امتیاز کسب کردید.",
+        "quiz_wrong": "❌ نادرست است. پاسخ صحیح این است",
+        "quiz_done": "🎉 امتحان کامل شد! امتیاز شما: {score}/{total}",
+        "support": "☕ از ما حمایت کنید: برای من یک قهوه بخرید - https://www.buymeacoffee.com/musicbot",
+        "basics": "مبانی",
+        "rhythm": "ریتم",
+        "intervals": "فاصله ها",
+        "scales": "گام ها",
+        "chords": "آکورد",
+        "quiz": "مسابقه",
+        "basics_text": "\nمبانی تئوری موسیقی:" "طول نت...",
+        "note_lengths_example": "مثال طول یادداشت.",
+        "note_lengths_image": "نمایش بصری طول نت.",
+        "notes_example": "نمونه یادداشت.",
+        "notes_image": "نمایش بصری یادداشت‌ها.",
+        "choose_another_lesson": "یک درس دیگر را انتخاب کنید:",
+    },
     "fr": {
         "start": "Bonjour! Bienvenue sur le bot de théorie musicale. Choisissez un sujet pour commencer l'apprentissage :",
         "help": "Commandes disponibles:\n/start - Accueil et menu des leçons\n/help - Afficher ce message d'aide\n/quiz - Faire un quiz de théorie musicale",
@@ -216,6 +317,39 @@ quiz_questions ={
         "correct": "minor"
     }
     ],
+    "Fa":[
+    {
+        "question": "کسر میزان یک والس چه است؟",
+        "options": ["2/4", "3/4", "4/4", "6/8"],
+        "correct": "3/4"
+    },
+    {
+        "question": "کدام نت یک پله کامل بالاتر از C است؟",
+        "options": ["C#", "D", "E", "B"],
+        "correct": "ره"
+    },
+    {
+        "question": "یک نیم نت سفید نقطه دار چند ضرب می شود؟",
+        "options": ["2", "3", "4", "6"],
+        "correct": "3"
+    },
+    {
+        "question": "نام مقیاس زیر (D -> E -> F# -> G -> A -> B -> C# -> D) چه خواهد بود؟",
+        "options": ["ره ماژور", "لا مینور", "سی ماژور", "ره مینور"],
+        "correct": "ره ماژور"
+    },
+    {
+        "question": "آکورد ماژور سه صدایی ساخته شده از نت C چیست؟",
+        "options": ["C -> E -> G", "C -> D# -> G", "C -> E -> G#", "C -> D# -> F#"],
+        "correct": "C -> E -> G"
+    },
+    {
+        "question": "با توجه به خلق و خوی، حدس بزنید آکورد ماژور یا مینور است؟",
+        "audio": "audio/minor_chord_q.ogg",
+        "options": ["عمده", "جزئی"],
+        "correct": "صغیر"
+    }
+    ],
     "fr":[
     {
         "question": "Quelle est la signature rythmique d'une valse ?",
@@ -287,7 +421,7 @@ amazon_adz = {
         ("🎸 Buy a Beginner Guitar", "https://www.amazon.ca/DONNER-DST-80-Electric-Guitar-Beginner/dp/B0DGX3931N/ref=sr_1_15?dib=eyJ2IjoiMSJ9.BWv838_pZEJ8XWxZEqfLXM-40IFxC0aZgKxs4jMW8upGDu2r4LekmIyKVEqhHcH_yWYXqy5uvBhY3puObtnah-lIWpQ9ph1W8_YXhk9ni7RYhZmSQXUSVMifnB2ibGpKK_yR3_eDFZAB95hnJQYgx_mytvKmGZ7Dx720A6ohLZYvh4N4eQgrxyCEtbgU1MSfAp0G-HQL05dA1NTBQ8RfEtPz0TeJd4G2jKLUb5NwadZVQBjeY02vt4AqmyHJHcOo2GY292RJ4x5TK0UTchSBCh1Yms7SgoO67S0KWVgGYKA.z346u3gX8GIiM6djky_bseCQ6ZhECSv0oMK_qVHP_n4&dib_tag=se&keywords=Guitars%2Bfor%2BBeginners&qid=1744207296&sr=8-15&th=1"),
         ("🎶 Guitar Strings Pack", "https://www.amazon.ca/Ernie-Ball-Regular-Electric-Strings/dp/B09WZ8PVZH/ref=sr_1_4?crid=2OSVY4T6053EP&dib=eyJ2IjoiMSJ9.vMGZlxLRqkGt-OQDB8V2Pmbqzam3s92SA9uaE_BeKgYHXYalWc4SNeeNAJrqlSqPVMpSChRd9p4jC1TbMT4FsBeWeTS5tGemUy_tR76687DeBxE_ZJoIR_numJxFrn54u4DPrUBRiicBeaeXFutMrmKADyZw6c_TSPVxNYVZ2jecGqcFLf7giMtOb4gp_ZpCn84G1CMrzHQWzsaylAw26CtZCuktmp6p2m7HzoVLoBcTG3GvoPI9HYiEOeOelgy9O8L8KS7AMmWeu2oegPO7RrBvuZzo_wR0nmRymHTXHeU.FKXB9sDdtmL1OsLWULmfvWSrzHjZW6cY013vTbW5HNg&dib_tag=se&keywords=guitar%2Bstrings%2Bpack&qid=1744207590&s=musical-instruments&sprefix=guitar%2Bstrings%2Bpac%2Cmi%2C309&sr=1-4&th=1")
     ],
-    "books": [
+    "book_1": [
         ("📘 Music Theory For Dummies", "https://www.amazon.ca/Guitar-Fretboard-Memorize-Exercises-Included/dp/1719064873/ref=sr_1_2_sspa?dib=eyJ2IjoiMSJ9.wd9U0cX3cvv4KcRCIEkOQjJXBXDDI0eeOB_k5eCPWPBnSm4LisWnS78fzvHJSv1L4qmeYD-jNV6Y0cRExZlwRAAPtAEUA67q8Hex5LyG0AXmmddKrQKRTANXmy9-aVxjSJs0Hl3qLs6k0eh2C9B-Qhwrf_IAN0ltZabd6zpRHPRj4CmR_Hzv-VpcLNddD_ixzmK84aQogx78ChnFC6m6jBBTfCFhnWiZsPt_E63JOLSpI7kPNII03oEd_p9uabmvB-OLHkXQPAlTl-bAMDcJ8YXyfp2Qj4LE-gBYuTbpMU0.fXx5atBKU3wowglMSMcpWnptQHQYGj3uxX3fD-ycTHY&dib_tag=se&keywords=guitar+book&qid=1744207823&sr=8-2-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1"),
         ("guitar fret board", "https://www.amazon.ca/Guitar-Adult-Beginners-Step-Step/dp/B0DT89T5B3/ref=sr_1_5_sspa?crid=34FM4DRF3A5TW&dib=eyJ2IjoiMSJ9.OrciLYa5RlM59RUC7adPX51Ths9hHfMoNQVR8zwU2rskcg_iTqpzd-ngAb52XLOM_rYfbw8CjCawdr2jU73Y4SOfpm9l-JiAVV-9iew_iNC0mPqI0VWEL4ng3ZzhOHKV_ToWPZYAp2WMNHAPxz4tfPLy2oPp4s1zWNn300_atoEuYKJ0rbd9nRw63BfmqKVQvHH80qAIv71tDjEe-W9QKlskXoKw6WoFWVJobedXDPJyKVBBY9cZN06mJZM_G5MTZaES_OrhrqBxILo_ojg57WPXzlgFOZkVMDtJHpY1_n8.oQj_ktZaKk1wLQ9xGBiqvm33OQbAhWwSI9rzu9Y05VU&dib_tag=se&keywords=guitar+book+best+seller&qid=1744207985&sprefix=guitar+book+best+selle%2Caps%2C522&sr=8-5-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1")
     ]
@@ -311,8 +445,39 @@ async def send_media(chat, file_path, caption="", is_quiz=False):
         #else:
             #await chat.send_message("⚠️ Unsupported file format. Only .ogg files are allowed.")
 
+def user_language():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton( "Persian", callback_data="lang_fa")],
+        [InlineKeyboardButton("English", callback_data="lang_en")]
+    ])
+
+async def handle_user_language(update : Update, content : ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    selected_lang = "Fa" if query.data == "lang_fa" else "lang_en"
+
+    # load existing data
+    try:
+        with open("languages.json", "r") as f:
+            languages = json.load(f)
+    except:
+        languages = {}
+
+    # save nuw users' language
+    languages[user_id] = selected_lang # here we make ID the key and lang the value.
+    with open("languages.json", "w") as f:
+        json.dump(languages, f)
+
+    msg = "تبریک! زبان شما به فارسی تغییر یافت" if query.data == "FA" else "you are on English now!"
+    await query.edit_message_text(msg)
+
 # Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
    # logger.info(f"Received /start command from {update.effective_user.id}")
     #try:
      #   await update.message.reply_text("Hello, this is a test response!")
@@ -323,21 +488,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     #user_points.setdefault(chat_id, 0)
     if chat_id not in user_points:
         user_points[chat_id] = 0  # Ensure user has a score
-    user_lang = update.effective_user.language_code[:2]  # Get the first two letters of the language code
-    message = get_text(user_lang, "start")
+    # handles Persian users.
+
+    user_id = str(update.effective_chat.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
 
     # Inline button for support
     support_keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("☕ Buy Me a Coffee", url="https://www.buymeacoffee.com/musicbot")]]
+        [[InlineKeyboardButton("☕ Buy Me a Coffee (this is optional!! , if you want to be a premium as well, please use subscribe button"
+                               ")", url="https://www.buymeacoffee.com/musicbot")]]
     )
 
-    await update.message.reply_text(
-        message,
+    await query.message.reply_text(
+        LANGUAGES[user_lang],
         reply_markup=lesson_menu(user_lang),
     )
 
-    await update.message.reply_text(
+    await query.message.reply_text(
         "Support us:", reply_markup=support_keyboard
+    )
+
+    await query.message.reply_text(
+        "If you're language is Farsi, click the button below",
+         reply_markup=user_language()
     )
 
 # Help Command
@@ -354,8 +529,79 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         get_text(user_lang, "help_commands")
     )
 
+def subscribe_btn():
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Subscribe"
+        , url="https://www.buymeacoffee.com/musicbot")]]
+    )
+
+# in_memory dictionary to track users waiting to send emails
+awaiting_email = set() # it is a temporary container for data.
+EMAIL_PATH = "user_emails.json"
+
+# Ask for email
+async def ask_for_email (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    awaiting_email.add(user_id)
+
+# Save email
+async def handle_email (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+
+    if user_id in awaiting_email:
+        email = update.message.text.strip()
+
+        # load previous emails
+        try:
+            with open (EMAIL_PATH , "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+
+        data[user_id] = email # here we are appointing the new user's email to the value of its ID (key) in data dict.
+
+        # save the data
+        with open(EMAIL_PATH, "w") as f:
+            json.dump(f)
+
+        awaiting_email.remove(user_id)
+        await update.message.reply_text("✅ Email saved. Thank you!")
+
+PATH_PREMIUM = "premium_users.json"
+
+def load_paid_users(user_id):
+    try:
+        with open("paid_users.json", "r") as f:
+            users = json.load(f)
+    except:
+        return str(user_id) in users
+
+premium_users = load_paid_users()
+
+def save_paid_user(user_id):
+    users = load_paid_users()
+    users.add(str(user_id))
+    with open("paid_users.json", "w") as f:
+        json.dump(list(users), f)
+
+def add_premium_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id) # makes a str obj
+    premium_users[user_id]= True # checks if the entered id is matching with the user's id
+    save_paid_user(user_id) # saves it to the json (so it is safe!)
+                            # at first, it calls the save_paid_users function
+                            # then that itself calls the load_paid_users function
+
+# the function in which the matching of user subscribed and user paid will be understood!
+async def send_premium_content (update, context):
+    if load_paid_users(update.effective_user.id):
+        await context.bot.send_video(
+            chat_id = update.effective_chat.id,
+            video=open("videos/advanced_lessons/MyRecord_20250328152812.mp4", "rb"),
+            caption = "🎸 Premium Guitar Lesson #1"
+        )
+
 #  Amazon ad sender
-def get_anazon_ad_keybord (category: "books"):
+def get_anazon_ad_keybord (category: "book_1"):
     buttons = []
     if category in amazon_adz:
         ads = random.sample(amazon_adz[category], k=min(2, len(amazon_adz[category])))
@@ -377,11 +623,12 @@ def lesson_menu(user_lang):
 
 # Send Quiz
 async def send_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_lang = update.effective_user.language_code[:2]  # Get the first two letters of the language code
 
-    # Default to English if the user's language is not available
-    if user_lang not in quiz_questions:
-        user_lang = "en"
+    # Send the question
+    user_id = str(update.effective_chat.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else "en"
 
     # Get the quiz questions for the user's language
     context.user_data["quiz"] = {
@@ -398,14 +645,21 @@ user_points = {}
 
 # Send Question
 async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
+    if update.callback_query:
+        query = update.callback_query
+        await query.answer()
+        message = query.message
+        chat_id = query.message.chat_id
+    else:
+        message = update.message
+        chat_id = message.chat_id
+
     quiz_data = context.user_data.get("quiz", {})
     questions = quiz_data.get("questions", [])
     current_index = quiz_data.get("current_index", 0)
 
     if current_index >= len(questions):
         score = user_points.get(chat_id, 0)
-        user_lang = update.effective_user.language_code[:2]
 
         # Create a combined reply markup with both "Restart Quiz" and "Lesson Menu"
         keyboard = [
@@ -414,7 +668,7 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update.effective_message.reply_text(
+        await message.reply_text(
             f"🎉 Quiz complete! Your score: {score}/{len(questions)}\n"
             "Want to try again? Click below.\n"
             "If not, choose another lesson:",
@@ -422,18 +676,18 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Store the current question in user_data
+    # Store the current question in user_data / to be flexible do an if statement for it
+                                                # to be callable 1 via text 2 via button
     question_data = questions[current_index]
-    context.user_data["current_question"] = question_data  # 🔴 This is the missing line!
+    context.user_data["current_question"] = question_data
 
-    # Send the question
     question_text = question_data["question"]
     options = question_data["options"]
 
     keyboard = [[InlineKeyboardButton(opt, callback_data=f"quiz_{i}")] for i, opt in enumerate(options)]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.effective_message.reply_text(question_text, reply_markup=reply_markup)
+    await message.reply_text(question_text, reply_markup=reply_markup)
 
     # If the question has an audio file, send it
     if "audio" in question_data:
@@ -441,10 +695,18 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_media(update.effective_chat, audio_path, is_quiz=True)
 
     # Sending the ads
-    await update.message.reply_text(
+    await message.reply_text(
         "Recommended for you:",
         reply_markup = get_anazon_ad_keybord("guitar")
+
     )
+
+    # Subscribe
+    #await update.message.reply_text(
+       # "Subscribe to be a premium member and unlock a lot of coll lessons:/n "
+       # "First, send /email and then type your email address, you're ready to sub (:",
+        #reply_markup = subscribe_btn()
+    #)
 
 # Handle Button Clicks
 async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE, user_lang="en"):
@@ -527,8 +789,16 @@ async def basics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    user_lang = update.effective_user.language_code[:2]  # Get user language (e.g., "en", "es", "fr")
+    user_id = str(update.effective_user.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
 
+    if lang == "Fa":
+        # Send Persian lessons by checking the dicts.
+        await query.message.edit_text(lessons["Fa"]["basics"])
+    else:
+        await query.message.edit_text(lessons[lang]["basics"])
     # Get lesson data, fallback to English if unavailable
     lesson_data = lessons.get(user_lang, lessons["en"]).get("basics", {})
 
@@ -551,7 +821,16 @@ async def rhythm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    user_lang = update.effective_user.language_code[:2]  # Get the user's language
+    user_id = str(update.effective_user.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
+
+    if lang == "Fa":
+        # Send Persian lessons by checking the dicts.
+        await query.message.edit_text(lessons["Fa"]["rhythm"])
+    else:
+        await query.message.edit_text(lessons[lang]["rhythm"])
 
     # Retrieve lesson data, fallback to English if unavailable
     lesson_data = lessons.get(user_lang, lessons["en"]).get("rhythm", {})
@@ -574,33 +853,32 @@ async def interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    user_lang = update.effective_user.language_code[:2]  # Get the language of the user
-    await query.message.edit_text(
-        get_text(user_lang,"- **Intervals**:\n"
-        "Here are the basic intervals from smallest to an octave:\n\n"
-        "🎵 **Minor Second (m2)** – 1 semitone (C → C# / Db)\n"
-        "🎵 **Major Second (M2)** – 2 semitones (C → D)\n"
-        "🎵 **Minor Third (m3)** – 3 semitones (C → Eb)\n"
-        "🎵 **Major Third (M3)** – 4 semitones (C → E)\n"
-        "🎵 **Perfect Fourth (P4)** – 5 semitones (C → F)\n"
-        "🎵 **Tritone (A4/d5)** – 6 semitones (C → F# / Gb)\n"
-        "🎵 **Perfect Fifth (P5)** – 7 semitones (C → G)\n"
-        "🎵 **Minor Sixth (m6)** – 8 semitones (C → Ab)\n"
-        "🎵 **Major Sixth (M6)** – 9 semitones (C → A)\n"
-        "🎵 **Minor Seventh (m7)** – 10 semitones (C → Bb)\n"
-        "🎵 **Major Seventh (M7)** – 11 semitones (C → B)\n"
-        "🎵 **Perfect Octave (P8)** – 12 semitones (C → C)\n\n"
-        "⬇️ Listen to the intervals below:")  # Use get_text() for the lesson content
-    )
+    user_id = str(update.effective_user.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
 
-    files = [
-        ("audio/Intervals.ogg", "Intervals Example"),
-    ]
+    if lang == "Fa":
+        # Send Persian lessons by checking the dicts.
+        await query.message.edit_text(lessons["Fa"]["interval"])
+    else:
+        await query.message.edit_text(lessons[lang]["interval"])
+
+    # Retrieve lesson data, fallback to English if unavailable
+    lesson_data = lessons.get(user_lang, lessons["en"]).get("interval", {})
+
+    # Send lesson text. If it wasn't there send an error!
+    await query.message.edit_text(lesson_data.get("text", "Lesson not available."))
+
+    # Send media files with localized captions
+    for file_path, caption_key in lesson_data.get("files", []):
+        await send_media(query.message, file_path, get_text(user_lang, caption_key))
+        await asyncio.sleep(1)  # Pause between messages
 
     # Check if the audio file exists before sending
-    for file_path, caption in files:
-        await send_media(query.message, file_path, caption)
-        await asyncio.sleep(1)  # Pause between messages
+    #for file_path, caption in files:
+     #   await send_media(query.message, file_path, caption)
+      #  await asyncio.sleep(1)  # Pause between messages
 
     # Show lesson menu again
     await query.message.reply_text(get_text(user_lang, "choose_another_lesson"), reply_markup=lesson_menu(user_lang))
@@ -610,19 +888,26 @@ async def scales(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    user_lang = update.effective_user.language_code[:2]  # Get the language of the user
-    await query.message.edit_text(
-        get_text(user_lang,"major: C -> D -> E -> F -> G -> A -> B -> C \n "
-     "minor : A -> B -> C -> D -> E -> F -> G -> A \n")  # Use get_text() for the lesson content
-    )
+    user_id = str(update.effective_user.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
 
-    files = [
-        ("audio/scales.ogg", "scales"),
-    ]
+    if lang == "Fa":
+        # Send Persian lessons by checking the dicts.
+        await query.message.edit_text(lessons["Fa"]["scales"])
+    else:
+        await query.message.edit_text(lessons[lang]["scales"])
 
-    # Check if the audio file exists before sending
-    for file_path, caption in files:
-        await send_media(query.message, file_path, caption)
+    # Retrieve lesson data, fallback to English if unavailable
+    lesson_data = lessons.get(user_lang, lessons["en"]).get("scales", {})
+
+    # Send lesson text. If it wasn't there send an error!
+    await query.message.edit_text(lesson_data.get("text", "Lesson not available."))
+
+    # Send media files with localized captions
+    for file_path, caption_key in lesson_data.get("files", []):
+        await send_media(query.message, file_path, get_text(user_lang, caption_key))
         await asyncio.sleep(1)  # Pause between messages
 
     # Show lesson menu again
@@ -633,25 +918,32 @@ async def chords(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    user_lang = update.effective_user.language_code[:2]  # Get the language of the user
-    await query.message.edit_text(
-        get_text(user_lang, "* Trie tone chords: \n"
-     "major: C -> E (a major third farther, 2 whole steps or 4 half steps) -> G"
-     "(a perfect fifth farther, 3/5 whole steps or 7 half steps (actually a minor third farther from the second note)) \n "
-     "minor : C -> D# (a minor third farther, 1/5 whole steps or 3 half steps) -> G "
-     "(a perfect fifth farther, 3/5 whole steps or 7 half steps (actually a major third farther from the second note)) \n"
-     "after having listened to the examples go on and experience chords on your own instrument (: \n"
-     "(ps: major chords have a happy mood in contrast to the minor chords)\n")  # Use get_text() for the lesson content
-    )
+    user_id = str(update.effective_user.id)
+    language = handle_user_language()
+    lang = language.get(user_id, "en")
+    user_lang = "Fa" if lang == "Fa" else update.effective_user.language_code[:2]
 
-    files = [
-        ("audio/chords.ogg", "chords"),
-    ]
+    if lang == "Fa":
+        # Send Persian lessons by checking the dicts.
+        await query.message.edit_text(lessons["Fa"]["chords"])
+    else:
+        await query.message.edit_text(lessons[lang]["chords"])
+
+    # Get lesson data, fallback to English if unavailable
+    lesson_data = lessons.get(user_lang, lessons["en"]).get("chords", {})
+
+    # Send lesson text
+    await query.message.edit_text(lesson_data.get("text", "Lesson not available."))
+
+    # Send media files with their corresponding translations
+    for file_path, caption_key in lesson_data.get("files", []):
+        await send_media(query.message, file_path, get_text(user_lang, caption_key))
+        await asyncio.sleep(1)  # Pause between messages
 
     # Check if the audio file exists before sending
-    for file_path, caption in files:
-        await send_media(query.message, file_path, caption)
-        await asyncio.sleep(1)  # Pause between messages
+    #for file_path, caption in files:
+     #   await send_media(query.message, file_path, caption)
+      #  await asyncio.sleep(1)  # Pause between messages
 
     # Show lesson menu again
     await query.message.reply_text(get_text(user_lang, "choose_another_lesson"), reply_markup=lesson_menu(user_lang))
@@ -661,6 +953,10 @@ async def chords(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).read_timeout(20).write_timeout(20).build()
 
+    app.add_handler(CallbackQueryHandler(handle_user_language, pattern="^lang_"))
+    app.add_handler(CommandHandler("email", ask_for_email))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email))
+    app.add_handler(CommandHandler("premium", send_premium_content))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("quiz", send_quiz))
@@ -678,6 +974,13 @@ def main():
         url_path="webhook",
         webhook_url=webhook_url
     )
+
+app = FastAPI()
+@app.post("/bmc-webhook")
+async def handle_bmc_webhook (request: Request):
+    data = await request.json()
+    print("Webhook received:", data)  # Debugging
+    return {"status":"OK"}
 
 if __name__ == "__main__":
     main()
